@@ -276,7 +276,7 @@ import { ConfigBuilderService } from '../../../../services/config-builder.servic
                   <select
                     id="authProvider"
                     class="form-select"
-                    [ngModel]="configBuilder.hostConfig().authentication?.provider || 'AppService'"
+                    [ngModel]="configBuilder.hostConfig().authentication?.provider || 'None'"
                     (ngModelChange)="setAuthProvider($event)"
                   >
                     @for (provider of authProviders; track provider.value) {
@@ -314,6 +314,11 @@ import { ConfigBuilderService } from '../../../../services/config-builder.servic
               <div class="alert alert-info mb-0 mt-2">
                 <small>
                   @switch (configBuilder.hostConfig().authentication?.provider) {
+                    @case ('None') {
+                      <strong>No Authentication:</strong> All requests will be allowed without
+                      authentication. Use only for development or when authentication is handled
+                      externally.
+                    }
                     @case ('EntraID') {
                       <strong>Microsoft Entra ID:</strong> Configure JWT audience and issuer from
                       your app registration.
@@ -331,7 +336,9 @@ import { ConfigBuilderService } from '../../../../services/config-builder.servic
                       authenticated requests.
                     }
                     @default {
-                      Select an authentication provider to see configuration guidance.
+                      <strong>No Authentication:</strong> All requests will be allowed without
+                      authentication. Use only for development or when authentication is handled
+                      externally.
                     }
                   }
                 </small>
@@ -352,6 +359,7 @@ export class RuntimeTabComponent {
   protected readonly configBuilder = inject(ConfigBuilderService);
 
   readonly authProviders: { value: AuthProvider; label: string }[] = [
+    { value: 'None', label: 'None (No Authentication)' },
     { value: 'AppService', label: 'Azure App Service' },
     { value: 'EntraID', label: 'Microsoft Entra ID' },
     { value: 'StaticWebApps', label: 'Azure Static Web Apps' },
@@ -399,13 +407,20 @@ export class RuntimeTabComponent {
 
   setAuthProvider(provider: AuthProvider): void {
     const current = this.configBuilder.hostConfig();
-    this.configBuilder.setHostConfig({
-      authentication: {
-        ...current.authentication,
-        provider,
-        jwt: this.requiresJwt() ? current.authentication?.jwt : undefined,
-      },
-    });
+    if (provider === 'None') {
+      // Remove authentication section entirely
+      this.configBuilder.setHostConfig({
+        authentication: undefined,
+      });
+    } else {
+      this.configBuilder.setHostConfig({
+        authentication: {
+          ...current.authentication,
+          provider,
+          jwt: this.requiresJwt() ? current.authentication?.jwt : undefined,
+        },
+      });
+    }
   }
 
   setJwtField(field: 'audience' | 'issuer', value: string): void {

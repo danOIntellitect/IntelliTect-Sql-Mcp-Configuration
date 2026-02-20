@@ -174,11 +174,23 @@ export class ConfigBuilderService {
       entitiesConfig[entity.name] = this.buildEntityConfig(entity);
     }
 
+    // Build host config, excluding authentication if not configured or set to 'None'
+    const hostConfig = this.hostConfig();
+    const cleanedHostConfig: IHostConfig = {
+      cors: hostConfig.cors,
+      mode: hostConfig.mode,
+    };
+
+    // Only include authentication if it exists and provider is not 'None'
+    if (hostConfig.authentication && hostConfig.authentication.provider !== 'None') {
+      cleanedHostConfig.authentication = hostConfig.authentication;
+    }
+
     const runtime: IRuntimeConfig = {
       rest: this.restConfig(),
       graphql: this.graphqlConfig(),
       mcp: this.mcpConfig(),
-      host: this.hostConfig(),
+      host: cleanedHostConfig,
     };
 
     return {

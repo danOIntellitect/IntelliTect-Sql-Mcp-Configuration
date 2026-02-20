@@ -401,6 +401,139 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
           </div>
         </div>
       }
+
+      <!-- Import Modal -->
+      @if (showImportModal()) {
+        <div class="modal d-block" tabindex="-1" role="dialog" (click)="showImportModal.set(false)">
+          <div class="modal-dialog modal-lg" role="document" (click)="$event.stopPropagation()">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">
+                  <i class="bi bi-file-earmark-arrow-up me-2"></i>
+                  Import Additional Entities
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  (click)="showImportModal.set(false)"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <p class="text-muted mb-4">
+                  Import your database schema to automatically generate entity configurations. All
+                  discovered tables will be added to your existing entities.
+                </p>
+
+                <div class="row g-3">
+                  <!-- JSON Import -->
+                  <div class="col-md-4">
+                    <div
+                      class="import-option p-4 border rounded text-center h-100"
+                      [class.active]="importMode() === 'json'"
+                      (click)="selectImportMode('json')"
+                    >
+                      <i class="bi bi-filetype-json display-4 text-primary mb-3 d-block"></i>
+                      <h6>Import JSON File</h6>
+                      <p class="text-muted small mb-0">Upload a JSON file with table definitions</p>
+                    </div>
+                  </div>
+
+                  <!-- SQL Import -->
+                  <div class="col-md-4">
+                    <div
+                      class="import-option p-4 border rounded text-center h-100"
+                      [class.active]="importMode() === 'sql'"
+                      (click)="selectImportMode('sql')"
+                    >
+                      <i class="bi bi-file-earmark-code display-4 text-success mb-3 d-block"></i>
+                      <h6>Paste SQL</h6>
+                      <p class="text-muted small mb-0">Paste CREATE TABLE statements</p>
+                    </div>
+                  </div>
+
+                  <!-- Manual Entry -->
+                  <div class="col-md-4">
+                    <div
+                      class="import-option p-4 border rounded text-center h-100"
+                      [class.active]="importMode() === 'manual'"
+                      (click)="selectImportMode('manual')"
+                    >
+                      <i class="bi bi-pencil-square display-4 text-warning mb-3 d-block"></i>
+                      <h6>Manual Entry</h6>
+                      <p class="text-muted small mb-0">Add entities manually one by one</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- JSON File Upload -->
+                @if (importMode() === 'json') {
+                  <div class="mt-4">
+                    <label for="jsonFileModal" class="form-label">Select JSON Schema File</label>
+                    <input
+                      type="file"
+                      id="jsonFileModal"
+                      class="form-control"
+                      accept=".json"
+                      (change)="onFileSelected($event)"
+                    />
+                    <small class="form-text text-muted">
+                      Expected format: &#123; "tables": [&#123; "name": "...", "schema": "...",
+                      "columns": [...] &#125;] &#125;
+                    </small>
+                  </div>
+                }
+
+                <!-- SQL Paste -->
+                @if (importMode() === 'sql') {
+                  <div class="mt-4">
+                    <label for="sqlInputModal" class="form-label">
+                      Paste CREATE TABLE Statements
+                    </label>
+                    <textarea
+                      id="sqlInputModal"
+                      class="form-control font-monospace"
+                      rows="10"
+                      placeholder="CREATE TABLE dbo.Users (
+    Id INT PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(255) NOT NULL,
+    CreatedAt DATETIME2
+);"
+                      [(ngModel)]="sqlInput"
+                    ></textarea>
+                    <button
+                      type="button"
+                      class="btn btn-primary mt-3"
+                      [disabled]="!sqlInput()"
+                      (click)="importSql()"
+                    >
+                      <i class="bi bi-upload me-1"></i>
+                      Parse and Import
+                    </button>
+                  </div>
+                }
+
+                <!-- Manual Entry -->
+                @if (importMode() === 'manual') {
+                  <div class="mt-4 text-center">
+                    <button type="button" class="btn btn-primary" (click)="addEntityFromModal()">
+                      <i class="bi bi-plus-lg me-1"></i>
+                      Add Entity Manually
+                    </button>
+                  </div>
+                }
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeImportModal()">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-backdrop show"></div>
+      }
     </div>
   `,
   styles: `
@@ -504,8 +637,13 @@ export class EntitiesTabComponent {
       const entities = await this.schemaImporter.importAndGenerate(file);
       this.notifications.success(`Imported ${entities.length} entities`);
       this.importMode.set(null);
+      this.showImportModal.set(false);
+      // Reset the file input
+      input.value = '';
     } catch (error) {
       this.notifications.error(error instanceof Error ? error.message : 'Failed to import schema');
+      // Reset the file input even on error
+      input.value = '';
     }
   }
 
@@ -522,6 +660,7 @@ export class EntitiesTabComponent {
       this.notifications.success(`Imported ${entities.length} entities`);
       this.sqlInput.set('');
       this.importMode.set(null);
+      this.showImportModal.set(false);
     } catch (error) {
       this.notifications.error(error instanceof Error ? error.message : 'Failed to parse SQL');
     }
@@ -531,6 +670,16 @@ export class EntitiesTabComponent {
     const entity = this.schemaImporter.createEmptyEntity();
     this.configBuilder.addEntity(entity);
     this.selectedEntityId.set(entity.id);
+  }
+
+  addEntityFromModal(): void {
+    this.addEntity();
+    this.closeImportModal();
+  }
+
+  closeImportModal(): void {
+    this.showImportModal.set(false);
+    this.importMode.set(null);
   }
 
   deleteEntity(id: string): void {

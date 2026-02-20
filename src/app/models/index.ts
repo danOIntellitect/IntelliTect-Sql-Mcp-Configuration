@@ -55,6 +55,7 @@ export type DatabaseType =
  * Authentication providers supported by DAB
  */
 export type AuthProvider =
+  | 'None'
   | 'StaticWebApps'
   | 'EntraID'
   | 'Simulator'

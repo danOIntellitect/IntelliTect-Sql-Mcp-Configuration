@@ -1,59 +1,94 @@
-# IntelliTectSqlMcpConfiguration
+# DAB Config Builder
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.3.
+An Angular application for creating and managing [Azure Data API Builder (DAB)](https://learn.microsoft.com/en-us/azure/data-api-builder/) configuration files. Azure Data API Builder generates REST and GraphQL APIs from your database without writing backend code.
 
-## Development server
+## Features
 
-To start a local development server, run:
+- Configure database connections (SQL Server, PostgreSQL, MySQL, Cosmos DB)
+- Define entities from database tables and views
+- Set up role-based permissions
+- Configure REST/GraphQL endpoints, CORS, and authentication
+- Import database schema automatically
+- Live JSON preview with download/copy functionality
+
+## Tech Stack
+
+- Angular 21
+- TypeScript 5.9
+- Bootstrap 5.3
+- RxJS 7.8
+- Vitest
+
+## Prerequisites
+
+- Node.js (v20 or later)
+- npm 11.6.4 or compatible package manager
+
+## Getting Started
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/danOIntellitect/IntelliTect-Sql-Mcp-Configuration.git
+   cd IntelliTect-Sql-Mcp-Configuration
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+### Development Server
+
+Start the local development server:
 
 ```bash
+npm start
+# or
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Navigate to `http://localhost:4200/`.
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Build
 
 ```bash
-ng generate component component-name
+npm run build
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Build artifacts are stored in the `dist/` directory.
+
+## Project Structure
+
+```text
+src/
+├── app/
+│   ├── components/
+│   ├── pages/
+│   │   └── config-wizard/
+│   ├── services/
+│   ├── models/
+│   ├── utils/
+│   └── interceptors/
+├── environments/
+└── styles/
+```
+
+## Testing
 
 ```bash
-ng generate --help
+npm test
 ```
 
-## Building
+## Resources
 
-To build the project run:
+- [Azure Data API Builder Documentation](https://learn.microsoft.com/en-us/azure/data-api-builder/)
+- [DAB Configuration Reference](https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/)
+- [Angular Documentation](https://angular.dev/)
 
-```bash
-ng build
-```
+## License
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Developed by IntelliTect.

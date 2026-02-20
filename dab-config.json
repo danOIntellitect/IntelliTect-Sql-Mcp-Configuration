@@ -1,0 +1,117 @@
+{
+  // For more information on configuring your DAB instance, see https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/
+  // For usage of the CLI tool to create and manage DAB projects, see https://learn.microsoft.com/en-us/azure/data-api-builder/command-line/
+  "$schema": "https://github.com/Azure/data-api-builder/releases/latest/download/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('MSSQL_CONNECTION_STRING')",
+    "options": {
+      "set-session-context": true
+    }
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "cors": {
+        "origins": ["*"],
+        "allow-credentials": false
+      },
+      // For more information on authentication configuration, see https://learn.microsoft.com/en-us/azure/data-api-builder/concept/security/how-to-authenticate-entra
+      "authentication": {
+        "provider": "EntraID",
+        "jwt": {
+          "audience": "936a47d7-f9b8-4974-ad6b-93281e50c149", // replace with Audience from app registration
+          "issuer": "https://login.microsoftonline.com/37321907-14a5-4390-987d-ec0c66c655cd/v2.0" // replace with Tenant Id
+        }
+      }
+      //"mode": "development" // development mode enables featuresa such as Swagger UI, increased logger verbosity, and health checks. Remove this setting or set to "production" for a production environment. For more information on runtime modes see
+      // https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/runtime#mode-host-runtime
+    },
+    "mcp": {
+      "enabled": true,
+      "path": "/mcp",
+      "dml-tools": {
+        "describe-entities": true,
+        "create-record": true,
+        "read-records": true,
+        // deleting and updating are off by default, enable if needed utilizing role based permissions at the entity level
+        "update-record": false,
+        "delete-record": false,
+        "execute-entity": false // execute permissions allows users to run stored procedures or functions mapped as entities in the DAB config
+      }
+    }
+    // if configured, telemetry settings will enable application insights for monitoring and diagnostics. For more information see https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/runtime#telemetry-runtime
+    //"telemetry": {
+    //	"application-insights": {
+    //		"enabled": true,
+    //		"connection-string": "@env('APPLICATIONINSIGHTS_CONNECTION_STRING')"
+    //	}
+    //}
+  },
+  // For more information on authentication configuration, see https://learn.microsoft.com/en-us/azure/data-api-builder/concept/security/how-to-authenticate-entra?tabs=bash#step-3-configure-entity-permissions
+  "entities": {
+    "User": {
+      "source": {
+        "object": "dbo.Users",
+        "type": "table"
+      },
+      "description": "Application user records with profile information",
+      "permissions": [
+        // Anonymous permissions are off by default, enable if needed. Be sure to only allow necessary actions for anonymous users to avoid unintended data exposure
+        //{
+        //	"role": "anonymous",
+        //	"actions": [ ]
+        //},
+        {
+          "role": "Developers",
+          "actions": ["*"]
+        }
+      ]
+    },
+    "Product": {
+      "source": {
+        "object": "dbo.Products",
+        "type": "table"
+      },
+      "description": "Product catalog with inventory and pricing information",
+      "permissions": [
+        {
+          "role": "authenticated",
+          "actions": ["read"]
+        }
+      ]
+    },
+    "Order": {
+      "source": {
+        "object": "dbo.Orders",
+        "type": "table"
+      },
+      "description": "Customer orders with line items and status tracking",
+      "permissions": [
+        {
+          "role": "authenticated",
+          "actions": ["read"]
+        }
+      ]
+    },
+    "OrderItem": {
+      "source": {
+        "object": "dbo.OrderItems",
+        "type": "table"
+      },
+      "description": "Line items for customer orders with quantity and pricing",
+      "permissions": [
+        {
+          "role": "authenticated",
+          "actions": ["read"]
+        }
+      ]
+    }
+  }
+}

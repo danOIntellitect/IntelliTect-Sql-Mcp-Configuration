@@ -1,0 +1,41 @@
+.footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  
+  h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: inherit;
+  }
+
+  p, li {
+    color: inherit;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  ul.list-unstyled li {
+    margin-bottom: 0.4rem;
+  }
+
+  a {
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: var(--bs-primary) !important;
+    }
+  }
+
+  .social-links {
+    a {
+      font-size: 1.5rem;
+    }
+  }
+
+  ul {
+    li {
+      margin-bottom: 0.5rem;
+    }
+  }
+}

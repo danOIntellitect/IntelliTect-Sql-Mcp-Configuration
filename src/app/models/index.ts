@@ -345,4 +345,5 @@ export interface IGeneratedEntity {
   mcp: IEntityMcpConfig;
   columns: IColumnInfo[];
   mappings: Record<string, string>;
+  relationships: Record<string, IRelationship>;
 }

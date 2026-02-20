@@ -332,6 +332,7 @@ export class SchemaImporterService {
       mcp,
       columns: table.columns,
       mappings: {},
+      relationships: {},
     };
   }
 
@@ -354,6 +355,7 @@ export class SchemaImporterService {
       mcp: { 'dml-tools': true },
       columns: [],
       mappings: {},
+      relationships: {},
     };
   }
 

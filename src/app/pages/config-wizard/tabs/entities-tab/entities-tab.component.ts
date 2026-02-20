@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IEntitySource, IGeneratedEntity } from '../../../../models';
+import { IEntitySource, IGeneratedEntity, IRelationship } from '../../../../models';
 import { ConfigBuilderService } from '../../../../services/config-builder.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { SchemaImporterService } from '../../../../services/schema-importer.service';
@@ -284,48 +284,487 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                     </div>
                   </div>
 
-                  <!-- API Configuration -->
+                  <!-- Relationships -->
                   <h6 class="border-bottom pb-2 mb-3">
-                    <i class="bi bi-globe me-2"></i>
-                    API Configuration
+                    <i class="bi bi-diagram-3 me-2"></i>
+                    Relationships
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary ms-2"
+                      (click)="addRelationship()"
+                    >
+                      <i class="bi bi-plus"></i>
+                      Add Relationship
+                    </button>
+                    <a
+                      href="https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/entities#relationships-entity-name-entities"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="ms-2 text-decoration-none"
+                      title="Learn about relationships"
+                    >
+                      <i class="bi bi-question-circle"></i>
+                    </a>
                   </h6>
-                  <div class="row mb-4">
-                    <div class="col-md-4">
-                      <div class="form-check form-switch">
-                        <input
-                          type="checkbox"
-                          id="restEnabled"
-                          class="form-check-input"
-                          [ngModel]="entity.rest.enabled"
-                          (ngModelChange)="updateRestField('enabled', $event)"
-                        />
-                        <label for="restEnabled" class="form-check-label"> REST API Enabled </label>
+                  <div class="mb-4">
+                    @if (getRelationshipKeys().length > 0) {
+                      @for (relKey of getRelationshipKeys(); track relKey) {
+                        <div class="card mb-3">
+                          <div
+                            class="card-header d-flex justify-content-between align-items-center"
+                          >
+                            <strong class="font-monospace">{{ relKey }}</strong>
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              (click)="removeRelationship(relKey)"
+                              title="Remove relationship"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                          <div class="card-body">
+                            <div class="row">
+                              <div class="col-md-6 mb-3">
+                                <label class="form-label">Relationship Name</label>
+                                <input
+                                  type="text"
+                                  class="form-control font-monospace"
+                                  [ngModel]="relKey"
+                                  (ngModelChange)="renameRelationship(relKey, $event)"
+                                  placeholder="books, author, orderItems"
+                                />
+                              </div>
+                              <div class="col-md-3 mb-3">
+                                <label class="form-label">Cardinality</label>
+                                <select
+                                  class="form-select"
+                                  [ngModel]="getRelationship(relKey)?.cardinality"
+                                  (ngModelChange)="
+                                    updateRelationshipField(relKey, 'cardinality', $event)
+                                  "
+                                >
+                                  <option value="one">One</option>
+                                  <option value="many">Many</option>
+                                </select>
+                              </div>
+                              <div class="col-md-3 mb-3">
+                                <label class="form-label">Target Entity</label>
+                                <input
+                                  type="text"
+                                  class="form-control"
+                                  [ngModel]="getRelationship(relKey)?.['target.entity']"
+                                  (ngModelChange)="
+                                    updateRelationshipField(relKey, 'target.entity', $event)
+                                  "
+                                  placeholder="Book, Author"
+                                />
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                  Source Fields
+                                  <small class="text-muted">(comma-separated)</small>
+                                </label>
+                                <input
+                                  type="text"
+                                  class="form-control font-monospace"
+                                  [ngModel]="
+                                    (getRelationship(relKey)?.['source.fields'] || []).join(', ')
+                                  "
+                                  (ngModelChange)="
+                                    updateRelationshipFields(relKey, 'source.fields', $event)
+                                  "
+                                  placeholder="AuthorId, PublisherId"
+                                />
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                  Target Fields
+                                  <small class="text-muted">(comma-separated)</small>
+                                </label>
+                                <input
+                                  type="text"
+                                  class="form-control font-monospace"
+                                  [ngModel]="
+                                    (getRelationship(relKey)?.['target.fields'] || []).join(', ')
+                                  "
+                                  (ngModelChange)="
+                                    updateRelationshipFields(relKey, 'target.fields', $event)
+                                  "
+                                  placeholder="Id"
+                                />
+                              </div>
+                            </div>
+                            @if (getRelationship(relKey)?.['linking.object'] !== undefined) {
+                              <div class="alert alert-info mt-2">
+                                <strong>Many-to-Many Relationship</strong>
+                                <div class="row mt-2">
+                                  <div class="col-md-4 mb-2">
+                                    <label class="form-label small">Linking Object</label>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm font-monospace"
+                                      [ngModel]="getRelationship(relKey)?.['linking.object']"
+                                      (ngModelChange)="
+                                        updateRelationshipField(relKey, 'linking.object', $event)
+                                      "
+                                    />
+                                  </div>
+                                  <div class="col-md-4 mb-2">
+                                    <label class="form-label small">Linking Source Fields</label>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm font-monospace"
+                                      [ngModel]="
+                                        (
+                                          getRelationship(relKey)?.['linking.source.fields'] || []
+                                        ).join(', ')
+                                      "
+                                      (ngModelChange)="
+                                        updateRelationshipFields(
+                                          relKey,
+                                          'linking.source.fields',
+                                          $event
+                                        )
+                                      "
+                                    />
+                                  </div>
+                                  <div class="col-md-4 mb-2">
+                                    <label class="form-label small">Linking Target Fields</label>
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm font-monospace"
+                                      [ngModel]="
+                                        (
+                                          getRelationship(relKey)?.['linking.target.fields'] || []
+                                        ).join(', ')
+                                      "
+                                      (ngModelChange)="
+                                        updateRelationshipFields(
+                                          relKey,
+                                          'linking.target.fields',
+                                          $event
+                                        )
+                                      "
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            }
+                            <div class="mt-2">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-secondary"
+                                (click)="toggleLinkingObject(relKey)"
+                              >
+                                @if (getRelationship(relKey)?.['linking.object'] !== undefined) {
+                                  <i class="bi bi-dash-circle me-1"></i>
+                                  Remove Many-to-Many Configuration
+                                } @else {
+                                  <i class="bi bi-plus-circle me-1"></i>
+                                  Configure as Many-to-Many
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    } @else {
+                      <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No relationships defined. Click "Add Relationship" to define relationships
+                        to other entities.
                       </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-check form-switch">
-                        <input
-                          type="checkbox"
-                          id="graphqlEnabled"
-                          class="form-check-input"
-                          [ngModel]="entity.graphql.enabled"
-                          (ngModelChange)="updateGraphqlField('enabled', $event)"
-                        />
-                        <label for="graphqlEnabled" class="form-check-label">
-                          GraphQL Enabled
-                        </label>
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="form-check form-switch">
-                        <input
-                          type="checkbox"
-                          id="mcpEnabled"
-                          class="form-check-input"
-                          [ngModel]="entity.mcp['dml-tools']"
-                          (ngModelChange)="updateMcpField('dml-tools', $event)"
-                        />
-                        <label for="mcpEnabled" class="form-check-label"> MCP DML Tools </label>
+                    }
+                  </div>
+
+                  <!-- API Configuration -->
+                  <div class="accordion mb-4" id="apiConfigAccordion">
+                    <div class="accordion-item">
+                      <h2 class="accordion-header">
+                        <button
+                          [class.collapsed]="!showApiConfig()"
+                          class="accordion-button"
+                          type="button"
+                          (click)="toggleApiConfig()"
+                          [attr.aria-expanded]="showApiConfig()"
+                        >
+                          <i class="bi bi-globe me-2"></i>
+                          API Configuration
+                        </button>
+                      </h2>
+                      <div [class.show]="showApiConfig()" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                          <div class="row mb-4">
+                            <div class="col-md-4">
+                              <div class="form-check form-switch">
+                                <input
+                                  type="checkbox"
+                                  id="restEnabled"
+                                  class="form-check-input"
+                                  [ngModel]="entity.rest.enabled"
+                                  (ngModelChange)="updateRestField('enabled', $event)"
+                                />
+                                <label for="restEnabled" class="form-check-label">
+                                  REST API Enabled
+                                </label>
+                              </div>
+                            </div>
+                            <div class="col-md-4">
+                              <div class="form-check form-switch">
+                                <input
+                                  type="checkbox"
+                                  id="graphqlEnabled"
+                                  class="form-check-input"
+                                  [ngModel]="entity.graphql.enabled"
+                                  (ngModelChange)="updateGraphqlField('enabled', $event)"
+                                />
+                                <label for="graphqlEnabled" class="form-check-label">
+                                  GraphQL Enabled
+                                </label>
+                              </div>
+                            </div>
+                            <div class="col-md-4">
+                              <div class="form-check form-switch">
+                                <input
+                                  type="checkbox"
+                                  id="mcpEnabled"
+                                  class="form-check-input"
+                                  [ngModel]="entity.mcp['dml-tools']"
+                                  (ngModelChange)="updateMcpField('dml-tools', $event)"
+                                />
+                                <label for="mcpEnabled" class="form-check-label">
+                                  MCP DML Tools
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- REST Advanced Configuration -->
+                          @if (entity.rest.enabled) {
+                            <div class="row mb-3">
+                              <div class="col-md-6 mb-3">
+                                <label for="restPath" class="form-label">
+                                  REST Path
+                                  <small class="text-muted">(optional)</small>
+                                </label>
+                                <input
+                                  type="text"
+                                  id="restPath"
+                                  class="form-control"
+                                  [ngModel]="entity.rest.path"
+                                  (ngModelChange)="updateRestField('path', $event)"
+                                  placeholder="Default: /{{ entity.name }}"
+                                />
+                              </div>
+                              <div class="col-md-6 mb-3">
+                                <label class="form-label d-block">Allowed REST Methods</label>
+                                <div class="d-flex gap-3 flex-wrap" style="max-width: 100%">
+                                  @for (
+                                    method of ['get', 'post', 'put', 'patch', 'delete'];
+                                    track method
+                                  ) {
+                                    <div class="form-check">
+                                      <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        [id]="'method-' + method"
+                                        [checked]="isRestMethodEnabled(method)"
+                                        (change)="toggleRestMethod(method, $event)"
+                                      />
+                                      <label
+                                        [for]="'method-' + method"
+                                        class="form-check-label text-uppercase"
+                                      >
+                                        {{ method }}
+                                      </label>
+                                    </div>
+                                  }
+                                </div>
+                                <small class="form-text text-muted d-block mt-1">
+                                  Leave empty to allow all methods
+                                </small>
+                              </div>
+                            </div>
+                          }
+
+                          <!-- GraphQL Advanced Configuration -->
+                          @if (entity.graphql.enabled) {
+                            <div class="row mb-4">
+                              <div class="col-md-4 mb-3">
+                                <label for="graphqlType" class="form-label">
+                                  GraphQL Type (Singular)
+                                  <small class="text-muted">(optional)</small>
+                                </label>
+                                <input
+                                  type="text"
+                                  id="graphqlType"
+                                  class="form-control"
+                                  [ngModel]="getGraphQLTypeSingular()"
+                                  (ngModelChange)="updateGraphQLTypeSingular($event)"
+                                  placeholder="Default: {{ entity.name }}"
+                                />
+                              </div>
+                              <div class="col-md-4 mb-3">
+                                <label for="graphqlTypePlural" class="form-label">
+                                  GraphQL Type (Plural)
+                                  <small class="text-muted">(optional)</small>
+                                </label>
+                                <input
+                                  type="text"
+                                  id="graphqlTypePlural"
+                                  class="form-control"
+                                  [ngModel]="getGraphQLTypePlural()"
+                                  (ngModelChange)="updateGraphQLTypePlural($event)"
+                                  placeholder="Default: {{ entity.name }}s"
+                                />
+                              </div>
+                              @if (entity.source.type === 'stored-procedure') {
+                                <div class="col-md-4 mb-3">
+                                  <label for="graphqlOperation" class="form-label"
+                                    >GraphQL Operation</label
+                                  >
+                                  <select
+                                    id="graphqlOperation"
+                                    class="form-select"
+                                    [ngModel]="entity.graphql.operation || 'mutation'"
+                                    (ngModelChange)="updateGraphqlField('operation', $event)"
+                                  >
+                                    <option value="mutation">Mutation</option>
+                                    <option value="query">Query</option>
+                                  </select>
+                                </div>
+                              }
+                            </div>
+                          }
+
+                          <!-- View Key Fields Configuration -->
+                          @if (entity.source.type === 'view') {
+                            <h6 class="border-bottom pb-2 mb-3">
+                              <i class="bi bi-key me-2"></i>
+                              View Key Fields
+                            </h6>
+                            <div class="row mb-4">
+                              <div class="col-12">
+                                <label class="form-label">
+                                  Primary Key Fields
+                                  <small class="text-muted">(required for views)</small>
+                                </label>
+                                <input
+                                  type="text"
+                                  class="form-control"
+                                  [ngModel]="(entity.source['key-fields'] || []).join(', ')"
+                                  (ngModelChange)="updateKeyFields($event)"
+                                  placeholder="e.g., Id, UserId"
+                                />
+                                <small class="form-text text-muted">
+                                  Comma-separated list of column names that uniquely identify rows
+                                </small>
+                              </div>
+                            </div>
+                          }
+
+                          <!-- Stored Procedure Parameters -->
+                          @if (entity.source.type === 'stored-procedure') {
+                            <h6 class="border-bottom pb-2 mb-3">
+                              <i class="bi bi-gear me-2"></i>
+                              Stored Procedure Parameters
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary ms-2"
+                                (click)="addParameter()"
+                              >
+                                <i class="bi bi-plus"></i>
+                                Add Parameter
+                              </button>
+                            </h6>
+                            <div class="mb-4">
+                              @if (
+                                entity.source.parameters && entity.source.parameters.length > 0
+                              ) {
+                                <div class="table-responsive">
+                                  <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                      <tr>
+                                        <th>Parameter Name</th>
+                                        <th>Required</th>
+                                        <th>Default Value</th>
+                                        <th>Description</th>
+                                        <th style="width: 60px">Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      @for (
+                                        param of entity.source.parameters;
+                                        track param.name;
+                                        let idx = $index
+                                      ) {
+                                        <tr>
+                                          <td>
+                                            <input
+                                              type="text"
+                                              class="form-control form-control-sm font-monospace"
+                                              [ngModel]="param.name"
+                                              (ngModelChange)="updateParameter(idx, 'name', $event)"
+                                              placeholder="@ParamName"
+                                            />
+                                          </td>
+                                          <td class="text-center">
+                                            <input
+                                              type="checkbox"
+                                              class="form-check-input"
+                                              [checked]="param.required"
+                                              (change)="toggleParameterRequired(idx)"
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              type="text"
+                                              class="form-control form-control-sm"
+                                              [ngModel]="param.default"
+                                              (ngModelChange)="
+                                                updateParameter(idx, 'default', $event)
+                                              "
+                                              placeholder="null"
+                                            />
+                                          </td>
+                                          <td>
+                                            <input
+                                              type="text"
+                                              class="form-control form-control-sm"
+                                              [ngModel]="param.description"
+                                              (ngModelChange)="
+                                                updateParameter(idx, 'description', $event)
+                                              "
+                                            />
+                                          </td>
+                                          <td class="text-center">
+                                            <button
+                                              type="button"
+                                              class="btn btn-sm btn-outline-danger"
+                                              (click)="removeParameter(idx)"
+                                              title="Remove parameter"
+                                            >
+                                              <i class="bi bi-trash"></i>
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      }
+                                    </tbody>
+                                  </table>
+                                </div>
+                              } @else {
+                                <div class="alert alert-info">
+                                  <i class="bi bi-info-circle me-2"></i>
+                                  No parameters defined. Click "Add Parameter" to add stored
+                                  procedure parameters with default values.
+                                </div>
+                              }
+                            </div>
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -577,6 +1016,7 @@ export class EntitiesTabComponent {
 
   readonly selectedEntityId = signal<string | null>(null);
   readonly showColumns = signal(false);
+  readonly showApiConfig = signal(false);
   readonly importMode = signal<'json' | 'sql' | 'manual' | null>(null);
   readonly sqlInput = signal('');
   readonly showImportModal = signal(false);
@@ -696,6 +1136,10 @@ export class EntitiesTabComponent {
     this.showColumns.update((v) => !v);
   }
 
+  toggleApiConfig(): void {
+    this.showApiConfig.update((v) => !v);
+  }
+
   updateEntityField(field: keyof IGeneratedEntity, value: unknown): void {
     const id = this.selectedEntityId();
     if (id) {
@@ -746,5 +1190,314 @@ export class EntitiesTabComponent {
       delete updatedMappings[columnName];
     }
     this.configBuilder.updateEntity(entity.id, { mappings: updatedMappings });
+  }
+
+  /** Check if a REST method is enabled */
+  isRestMethodEnabled(method: string): boolean {
+    const entity = this.selectedEntity();
+    if (!entity || !entity.rest.methods) return false;
+    return entity.rest.methods.includes(method as 'get' | 'post' | 'put' | 'patch' | 'delete');
+  }
+
+  /** Toggle a REST method on/off */
+  toggleRestMethod(method: string, event: Event): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const checked = (event.target as HTMLInputElement).checked;
+    const methods = entity.rest.methods || [];
+    const typedMethod = method as 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+    let updatedMethods: Array<'get' | 'post' | 'put' | 'patch' | 'delete'>;
+    if (checked) {
+      updatedMethods = [...methods, typedMethod];
+    } else {
+      updatedMethods = methods.filter((m) => m !== typedMethod);
+    }
+
+    const updatedRest = {
+      ...entity.rest,
+      methods: updatedMethods.length > 0 ? updatedMethods : undefined,
+    };
+    this.configBuilder.updateEntity(entity.id, { rest: updatedRest });
+  }
+
+  /** Get GraphQL type singular name */
+  getGraphQLTypeSingular(): string {
+    const entity = this.selectedEntity();
+    if (!entity) return '';
+
+    if (typeof entity.graphql.type === 'string') {
+      return entity.graphql.type;
+    } else if (typeof entity.graphql.type === 'object' && entity.graphql.type?.singular) {
+      return entity.graphql.type.singular;
+    }
+    return '';
+  }
+
+  /** Get GraphQL type plural name */
+  getGraphQLTypePlural(): string {
+    const entity = this.selectedEntity();
+    if (!entity) return '';
+
+    if (typeof entity.graphql.type === 'object' && entity.graphql.type?.plural) {
+      return entity.graphql.type.plural;
+    }
+    return '';
+  }
+
+  /** Update GraphQL type singular name */
+  updateGraphQLTypeSingular(value: string): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const currentType = entity.graphql.type;
+    let updatedType: string | { singular: string; plural?: string } | undefined;
+
+    if (!value.trim()) {
+      // Clear singular, keep plural if it exists
+      if (typeof currentType === 'object' && currentType?.plural) {
+        updatedType = { singular: entity.name, plural: currentType.plural };
+      } else {
+        updatedType = undefined;
+      }
+    } else {
+      // Set singular, preserve plural
+      if (typeof currentType === 'object' && currentType?.plural) {
+        updatedType = { singular: value, plural: currentType.plural };
+      } else {
+        updatedType = { singular: value };
+      }
+    }
+
+    const updatedGraphql = { ...entity.graphql, type: updatedType };
+    this.configBuilder.updateEntity(entity.id, { graphql: updatedGraphql });
+  }
+
+  /** Update GraphQL type plural name */
+  updateGraphQLTypePlural(value: string): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const currentType = entity.graphql.type;
+    let singular: string;
+
+    if (typeof currentType === 'string') {
+      singular = currentType;
+    } else if (typeof currentType === 'object' && currentType?.singular) {
+      singular = currentType.singular;
+    } else {
+      singular = entity.name;
+    }
+
+    const updatedType: { singular: string; plural?: string } = { singular };
+    if (value.trim()) {
+      updatedType.plural = value;
+    }
+
+    const updatedGraphql = { ...entity.graphql, type: updatedType };
+    this.configBuilder.updateEntity(entity.id, { graphql: updatedGraphql });
+  }
+
+  /** Update key fields for views */
+  updateKeyFields(value: string): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const keyFields = value
+      .split(',')
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+
+    const updatedSource = {
+      ...entity.source,
+      'key-fields': keyFields.length > 0 ? keyFields : undefined,
+    };
+    this.configBuilder.updateEntity(entity.id, { source: updatedSource });
+  }
+
+  /** Add a parameter to stored procedure */
+  addParameter(): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const parameters = entity.source.parameters || [];
+    const updatedParameters = [
+      ...parameters,
+      {
+        name: '@NewParameter',
+        required: false,
+        default: null,
+        description: '',
+      },
+    ];
+
+    const updatedSource = { ...entity.source, parameters: updatedParameters };
+    this.configBuilder.updateEntity(entity.id, { source: updatedSource });
+  }
+
+  /** Update a parameter field */
+  updateParameter(index: number, field: string, value: unknown): void {
+    const entity = this.selectedEntity();
+    if (!entity || !entity.source.parameters) return;
+
+    const updatedParameters = [...entity.source.parameters];
+    updatedParameters[index] = { ...updatedParameters[index], [field]: value };
+
+    const updatedSource = { ...entity.source, parameters: updatedParameters };
+    this.configBuilder.updateEntity(entity.id, { source: updatedSource });
+  }
+
+  /** Toggle parameter required flag */
+  toggleParameterRequired(index: number): void {
+    const entity = this.selectedEntity();
+    if (!entity || !entity.source.parameters) return;
+
+    const currentValue = entity.source.parameters[index].required || false;
+    this.updateParameter(index, 'required', !currentValue);
+  }
+
+  /** Remove a parameter from stored procedure */
+  removeParameter(index: number): void {
+    const entity = this.selectedEntity();
+    if (!entity || !entity.source.parameters) return;
+
+    const updatedParameters = entity.source.parameters.filter((_, i) => i !== index);
+    const updatedSource = {
+      ...entity.source,
+      parameters: updatedParameters.length > 0 ? updatedParameters : undefined,
+    };
+    this.configBuilder.updateEntity(entity.id, { source: updatedSource });
+  }
+
+  /** Get relationship keys as array */
+  getRelationshipKeys(): string[] {
+    const entity = this.selectedEntity();
+    if (!entity) return [];
+    return Object.keys(entity.relationships || {});
+  }
+
+  /** Get a relationship by key */
+  getRelationship(key: string): IRelationship | undefined {
+    const entity = this.selectedEntity();
+    if (!entity) return undefined;
+    return entity.relationships?.[key];
+  }
+
+  /** Add a new relationship */
+  addRelationship(): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    let baseName = 'newRelationship';
+    let counter = 1;
+    let relationshipName = baseName;
+
+    // Find a unique name
+    while (entity.relationships[relationshipName]) {
+      relationshipName = `${baseName}${counter}`;
+      counter++;
+    }
+
+    const newRelationship: IRelationship = {
+      cardinality: 'many',
+      'target.entity': '',
+      'source.fields': [],
+      'target.fields': [],
+    };
+
+    const updatedRelationships = { ...entity.relationships, [relationshipName]: newRelationship };
+    this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+  }
+
+  /** Remove a relationship */
+  removeRelationship(key: string): void {
+    if (!confirm(`Remove relationship "${key}"?`)) return;
+
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const updatedRelationships = { ...entity.relationships };
+    delete updatedRelationships[key];
+    this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+  }
+
+  /** Rename a relationship */
+  renameRelationship(oldKey: string, newKey: string): void {
+    const entity = this.selectedEntity();
+    if (!entity || !newKey.trim() || oldKey === newKey) return;
+
+    // Check if newKey already exists
+    if (entity.relationships[newKey]) {
+      this.notifications.warning(`Relationship "${newKey}" already exists`);
+      return;
+    }
+
+    const relationship = entity.relationships[oldKey];
+    const updatedRelationships = { ...entity.relationships };
+    delete updatedRelationships[oldKey];
+    updatedRelationships[newKey] = relationship;
+
+    this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+  }
+
+  /** Update a relationship field */
+  updateRelationshipField(key: string, field: string, value: unknown): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const relationship = entity.relationships[key];
+    if (!relationship) return;
+
+    const updatedRelationship = { ...relationship, [field]: value };
+    const updatedRelationships = { ...entity.relationships, [key]: updatedRelationship };
+    this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+  }
+
+  /** Update a relationship fields array (comma-separated string input) */
+  updateRelationshipFields(key: string, field: string, value: string): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const relationship = entity.relationships[key];
+    if (!relationship) return;
+
+    const fields = value
+      .split(',')
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+
+    const updatedRelationship = {
+      ...relationship,
+      [field]: fields.length > 0 ? fields : undefined,
+    };
+    const updatedRelationships = { ...entity.relationships, [key]: updatedRelationship };
+    this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+  }
+
+  /** Toggle linking object for many-to-many relationships */
+  toggleLinkingObject(key: string): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const relationship = entity.relationships[key];
+    if (!relationship) return;
+
+    const updatedRelationship = { ...relationship };
+
+    if (relationship['linking.object'] !== undefined) {
+      // Remove linking configuration
+      delete updatedRelationship['linking.object'];
+      delete updatedRelationship['linking.source.fields'];
+      delete updatedRelationship['linking.target.fields'];
+    } else {
+      // Add linking configuration
+      updatedRelationship['linking.object'] = '';
+      updatedRelationship['linking.source.fields'] = [];
+      updatedRelationship['linking.target.fields'] = [];
+    }
+
+    const updatedRelationships = { ...entity.relationships, [key]: updatedRelationship };
+    this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
   }
 }

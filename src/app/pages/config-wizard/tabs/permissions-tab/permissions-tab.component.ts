@@ -68,7 +68,7 @@ import { PermissionWarningModalComponent } from '../../components/permission-war
                     <i class="bi bi-exclamation-triangle-fill"></i>
                   }
                   {{ role }}
-                  @if (role !== 'authenticated') {
+                  @if (role !== 'authenticated' && role !== 'anonymous') {
                     <button
                       type="button"
                       class="btn-close btn-close-white ms-1"

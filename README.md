@@ -77,6 +77,47 @@ src/
 └── styles/
 ```
 
+## Schema Import
+
+The application supports importing database schemas to automatically generate entity configurations.
+
+### JSON Schema Format
+
+```json
+{
+  "tables": [
+    {
+      "name": "Users",
+      "schema": "dbo",
+      "columns": [
+        {
+          "name": "Id",
+          "type": "int",
+          "nullable": false,
+          "isPrimaryKey": true
+        },
+        {
+          "name": "Email",
+          "type": "string",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "description": "User's email address"
+        },
+        {
+          "name": "CreatedAt",
+          "type": "datetime",
+          "nullable": false,
+          "isPrimaryKey": false,
+          "description": "Account creation timestamp"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Field Descriptions**: Optional descriptions can be added to individual columns for documentation purposes. These descriptions help document the schema and are visible in the entity editor for reference.
+
 ## Testing
 
 ```bash

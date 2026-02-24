@@ -227,11 +227,6 @@ export class ConfigBuilderService {
       config.mcp = entity.mcp;
     }
 
-    // Add mappings if present
-    if (entity.mappings && Object.keys(entity.mappings).length > 0) {
-      config.mappings = entity.mappings;
-    }
-
     return config;
   }
 

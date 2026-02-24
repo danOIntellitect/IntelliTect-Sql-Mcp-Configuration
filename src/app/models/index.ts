@@ -286,6 +286,7 @@ export interface IColumnInfo {
   isPrimaryKey: boolean;
   maxLength?: number;
   defaultValue?: string;
+  description?: string;
 }
 
 /**

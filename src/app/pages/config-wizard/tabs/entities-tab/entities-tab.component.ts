@@ -791,7 +791,7 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                               <th>Type</th>
                               <th>Nullable</th>
                               <th>Primary Key</th>
-                              <th>Alias</th>
+                              <th>Description</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -815,9 +815,9 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                                   <input
                                     type="text"
                                     class="form-control form-control-sm"
-                                    [ngModel]="entity.mappings[col.name] || ''"
-                                    (ngModelChange)="updateMapping(col.name, $event)"
-                                    placeholder="(no alias)"
+                                    [ngModel]="col.description || ''"
+                                    (ngModelChange)="updateColumnDescription(col.name, $event)"
+                                    placeholder="(no description)"
                                   />
                                 </td>
                               </tr>
@@ -1179,17 +1179,14 @@ export class EntitiesTabComponent {
     this.configBuilder.updateEntity(entity.id, { mcp: updatedMcp });
   }
 
-  updateMapping(columnName: string, alias: string): void {
+  updateColumnDescription(columnName: string, description: string): void {
     const entity = this.selectedEntity();
     if (!entity) return;
 
-    const updatedMappings = { ...entity.mappings };
-    if (alias.trim()) {
-      updatedMappings[columnName] = alias;
-    } else {
-      delete updatedMappings[columnName];
-    }
-    this.configBuilder.updateEntity(entity.id, { mappings: updatedMappings });
+    const updatedColumns = entity.columns.map((col) =>
+      col.name === columnName ? { ...col, description: description.trim() || undefined } : col,
+    );
+    this.configBuilder.updateEntity(entity.id, { columns: updatedColumns });
   }
 
   /** Check if a REST method is enabled */

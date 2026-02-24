@@ -243,6 +243,7 @@ export class SchemaImporterService {
         obj['PRIMARY_KEY'] === true,
       maxLength: typeof obj['maxLength'] === 'number' ? obj['maxLength'] : undefined,
       defaultValue: typeof obj['defaultValue'] === 'string' ? obj['defaultValue'] : undefined,
+      description: typeof obj['description'] === 'string' ? obj['description'] : undefined,
     };
   }
 

@@ -251,6 +251,90 @@ import { ConfigBuilderService } from '../../../../services/config-builder.servic
           </div>
         </div>
 
+        <!-- Pagination Configuration -->
+        <div class="col-12 mb-4">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                <i class="bi bi-layers me-2"></i>
+                Pagination
+              </h5>
+              <a
+                href="https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/runtime#pagination-runtime"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-sm btn-outline-primary"
+              >
+                <i class="bi bi-book me-1"></i>
+                Documentation
+              </a>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label for="maxPageSize" class="form-label">Max Page Size</label>
+                  <input
+                    type="number"
+                    id="maxPageSize"
+                    class="form-control"
+                    [ngModel]="configBuilder.paginationConfig()['max-page-size']"
+                    (ngModelChange)="configBuilder.setPaginationConfig({ 'max-page-size': $event })"
+                    placeholder="100000 (default)"
+                    min="1"
+                  />
+                  <small class="form-text text-muted">
+                    Maximum number of records per page (default: 100,000)
+                  </small>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label for="defaultPageSize" class="form-label">Default Page Size</label>
+                  <input
+                    type="number"
+                    id="defaultPageSize"
+                    class="form-control"
+                    [ngModel]="configBuilder.paginationConfig()['default-page-size']"
+                    (ngModelChange)="
+                      configBuilder.setPaginationConfig({ 'default-page-size': $event })
+                    "
+                    placeholder="100 (default)"
+                    min="1"
+                  />
+                  <small class="form-text text-muted">
+                    Default number of records returned (default: 100)
+                  </small>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label d-block">Next Link Options</label>
+                  <div class="form-check mt-2">
+                    <input
+                      type="checkbox"
+                      id="nextLinkRelative"
+                      class="form-check-input"
+                      [ngModel]="configBuilder.paginationConfig()['next-link-relative']"
+                      (ngModelChange)="
+                        configBuilder.setPaginationConfig({ 'next-link-relative': $event })
+                      "
+                    />
+                    <label for="nextLinkRelative" class="form-check-label">
+                      Use Relative URLs
+                    </label>
+                  </div>
+                  <small class="form-text text-muted d-block mt-1">
+                    Use relative URLs for pagination links
+                  </small>
+                </div>
+              </div>
+              <div class="alert alert-info mb-0 mt-2">
+                <small>
+                  <strong>Pagination Settings:</strong> Configure default pagination behavior for
+                  REST and GraphQL endpoints. Leave values empty to use defaults (max: 100,000,
+                  default: 100).
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Authentication Configuration -->
         <div class="col-12 mb-4">
           <div class="card">

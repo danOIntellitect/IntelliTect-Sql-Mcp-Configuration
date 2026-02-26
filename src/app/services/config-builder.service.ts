@@ -8,6 +8,7 @@ import {
   IGraphQLConfig,
   IHostConfig,
   IMcpConfig,
+  IPaginationConfig,
   IRestConfig,
   IRuntimeConfig,
 } from '../models';
@@ -55,6 +56,12 @@ export class ConfigBuilderService {
       'allow-credentials': false,
     },
     mode: 'development',
+  });
+
+  readonly paginationConfig = signal<IPaginationConfig>({
+    'max-page-size': null,
+    'default-page-size': null,
+    'next-link-relative': false,
   });
 
   // Entities state
@@ -157,6 +164,13 @@ export class ConfigBuilderService {
   }
 
   /**
+   * Update Pagination configuration
+   */
+  setPaginationConfig(config: Partial<IPaginationConfig>): void {
+    this.paginationConfig.update((current) => ({ ...current, ...config }));
+  }
+
+  /**
    * Toggle preview panel
    */
   togglePreview(): void {
@@ -186,12 +200,24 @@ export class ConfigBuilderService {
       cleanedHostConfig.authentication = hostConfig.authentication;
     }
 
+    // Build pagination config, only include if values are set
+    const paginationConfig = this.paginationConfig();
+    const hasPaginationConfig =
+      paginationConfig['max-page-size'] !== null ||
+      paginationConfig['default-page-size'] !== null ||
+      paginationConfig['next-link-relative'] === true;
+
     const runtime: IRuntimeConfig = {
       rest: this.restConfig(),
       graphql: this.graphqlConfig(),
       mcp: this.mcpConfig(),
       host: cleanedHostConfig,
     };
+
+    // Only include pagination if configured
+    if (hasPaginationConfig) {
+      runtime.pagination = paginationConfig;
+    }
 
     return {
       $schema:
@@ -326,6 +352,11 @@ export class ConfigBuilderService {
         'allow-credentials': false,
       },
       mode: 'development',
+    });
+    this.paginationConfig.set({
+      'max-page-size': null,
+      'default-page-size': null,
+      'next-link-relative': false,
     });
   }
 }

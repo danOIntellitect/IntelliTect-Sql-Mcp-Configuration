@@ -166,6 +166,15 @@ export interface IHostConfig {
 }
 
 /**
+ * Pagination configuration
+ */
+export interface IPaginationConfig {
+  'max-page-size'?: number | null;
+  'default-page-size'?: number | null;
+  'next-link-relative'?: boolean;
+}
+
+/**
  * Telemetry configuration
  */
 export interface ITelemetryConfig {
@@ -183,6 +192,7 @@ export interface IRuntimeConfig {
   graphql?: IGraphQLConfig;
   mcp?: IMcpConfig;
   host?: IHostConfig;
+  pagination?: IPaginationConfig;
   telemetry?: ITelemetryConfig;
 }
 

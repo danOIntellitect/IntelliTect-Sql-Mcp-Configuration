@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { IEntitySource, IGeneratedEntity, IRelationship } from '../../../../models';
+import { IColumnInfo, IEntitySource, IGeneratedEntity, IRelationship } from '../../../../models';
 import { ConfigBuilderService } from '../../../../services/config-builder.service';
 import { NotificationService } from '../../../../services/notification.service';
 import { SchemaImporterService } from '../../../../services/schema-importer.service';
@@ -769,11 +769,19 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                     </div>
                   </div>
 
-                  <!-- Columns (if available) -->
-                  @if (entity.columns.length > 0) {
-                    <h6 class="border-bottom pb-2 mb-3">
-                      <i class="bi bi-list-columns me-2"></i>
-                      Columns
+                  <!-- Columns / Fields -->
+                  <h6 class="border-bottom pb-2 mb-3">
+                    <i class="bi bi-list-columns me-2"></i>
+                    Fields
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary ms-2"
+                      (click)="addColumn()"
+                    >
+                      <i class="bi bi-plus"></i>
+                      Add Field
+                    </button>
+                    @if (entity.columns.length > 0) {
                       <button
                         type="button"
                         class="btn btn-sm btn-link ms-2"
@@ -781,34 +789,115 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                       >
                         {{ showColumns() ? 'Hide' : 'Show' }}
                       </button>
-                    </h6>
-                    @if (showColumns()) {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-success ms-2"
+                        (click)="autoGenerateRelationships()"
+                        [disabled]="!hasForeignKeys()"
+                        title="Auto-generate relationships from foreign keys"
+                      >
+                        <i class="bi bi-diagram-3 me-1"></i>
+                        Generate Relationships
+                      </button>
+                    }
+                    <a
+                      href="https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/fields"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="ms-2 text-decoration-none"
+                      title="Learn about field configuration"
+                    >
+                      <i class="bi bi-question-circle"></i>
+                    </a>
+                  </h6>
+                  <div class="mb-4">
+                    @if (entity.columns.length > 0 && showColumns()) {
                       <div class="table-responsive">
                         <table class="table table-sm table-bordered">
                           <thead class="table-light">
                             <tr>
-                              <th>Column</th>
-                              <th>Type</th>
-                              <th>Nullable</th>
-                              <th>Primary Key</th>
+                              <th>Field Name</th>
+                              <th>Data Type</th>
+                              <th style="width: 80px">Nullable</th>
+                              <th style="width: 100px">Primary Key</th>
+                              <th style="width: 100px">Foreign Key</th>
+                              <th>FK Entity</th>
+                              <th>FK Field</th>
                               <th>Description</th>
+                              <th style="width: 60px">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
-                            @for (col of entity.columns; track col.name) {
+                            @for (col of entity.columns; track col.name; let idx = $index) {
                               <tr>
-                                <td class="font-monospace">{{ col.name }}</td>
-                                <td>{{ col.type }}</td>
                                 <td>
-                                  @if (col.nullable) {
-                                    <i class="bi bi-check-circle text-success"></i>
-                                  } @else {
-                                    <i class="bi bi-x-circle text-danger"></i>
+                                  <input
+                                    type="text"
+                                    class="form-control form-control-sm font-monospace"
+                                    [ngModel]="col.name"
+                                    (ngModelChange)="updateColumn(idx, 'name', $event)"
+                                    placeholder="FieldName"
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    [ngModel]="col.type"
+                                    (ngModelChange)="updateColumn(idx, 'type', $event)"
+                                    placeholder="string, int, etc."
+                                  />
+                                </td>
+                                <td class="text-center">
+                                  <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    [checked]="col.nullable"
+                                    (change)="toggleColumnNullable(idx)"
+                                  />
+                                </td>
+                                <td class="text-center">
+                                  <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    [checked]="col.isPrimaryKey"
+                                    (change)="toggleColumnPrimaryKey(idx)"
+                                  />
+                                </td>
+                                <td class="text-center">
+                                  <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    [checked]="!!col.foreignKey"
+                                    (change)="toggleColumnForeignKey(idx, $event)"
+                                  />
+                                </td>
+                                <td>
+                                  @if (col.foreignKey) {
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      [ngModel]="col.foreignKey.entity"
+                                      (ngModelChange)="updateForeignKey(idx, 'entity', $event)"
+                                      placeholder="User"
+                                      list="entityList"
+                                    />
+                                    <datalist id="entityList">
+                                      @for (e of configBuilder.entities(); track e.id) {
+                                        <option [value]="e.name"></option>
+                                      }
+                                    </datalist>
                                   }
                                 </td>
                                 <td>
-                                  @if (col.isPrimaryKey) {
-                                    <i class="bi bi-key-fill text-warning"></i>
+                                  @if (col.foreignKey) {
+                                    <input
+                                      type="text"
+                                      class="form-control form-control-sm"
+                                      [ngModel]="col.foreignKey.field"
+                                      (ngModelChange)="updateForeignKey(idx, 'field', $event)"
+                                      placeholder="Id"
+                                    />
                                   }
                                 </td>
                                 <td>
@@ -816,17 +905,34 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                                     type="text"
                                     class="form-control form-control-sm"
                                     [ngModel]="col.description || ''"
-                                    (ngModelChange)="updateColumnDescription(col.name, $event)"
-                                    placeholder="(no description)"
+                                    (ngModelChange)="updateColumn(idx, 'description', $event)"
+                                    placeholder="Field description"
                                   />
+                                </td>
+                                <td class="text-center">
+                                  <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    (click)="removeColumn(idx)"
+                                    title="Remove field"
+                                  >
+                                    <i class="bi bi-trash"></i>
+                                  </button>
                                 </td>
                               </tr>
                             }
                           </tbody>
                         </table>
                       </div>
+                    } @else if (entity.columns.length === 0) {
+                      <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        No fields defined. Click "Add Field" to manually add field configurations.
+                        Fields are used to provide descriptions and metadata in the MCP tools and
+                        API documentation.
+                      </div>
                     }
-                  }
+                  </div>
                 </div>
               </div>
             } @else {
@@ -1496,5 +1602,158 @@ export class EntitiesTabComponent {
 
     const updatedRelationships = { ...entity.relationships, [key]: updatedRelationship };
     this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+  }
+
+  /** Add a new column/field to the entity */
+  addColumn(): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const newColumn: IColumnInfo = {
+      name: 'NewField',
+      type: 'string',
+      nullable: true,
+      isPrimaryKey: false,
+      description: '',
+    };
+
+    const updatedColumns = [...entity.columns, newColumn];
+    this.configBuilder.updateEntity(entity.id, { columns: updatedColumns });
+
+    // Auto-show columns when adding a new one
+    this.showColumns.set(true);
+  }
+
+  /** Update a column field */
+  updateColumn(index: number, field: string, value: unknown): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const updatedColumns = [...entity.columns];
+    updatedColumns[index] = { ...updatedColumns[index], [field]: value };
+
+    this.configBuilder.updateEntity(entity.id, { columns: updatedColumns });
+  }
+
+  /** Toggle column nullable flag */
+  toggleColumnNullable(index: number): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const currentValue = entity.columns[index].nullable;
+    this.updateColumn(index, 'nullable', !currentValue);
+  }
+
+  /** Toggle column primary key flag */
+  toggleColumnPrimaryKey(index: number): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const currentValue = entity.columns[index].isPrimaryKey;
+    this.updateColumn(index, 'isPrimaryKey', !currentValue);
+  }
+
+  /** Remove a column from the entity */
+  removeColumn(index: number): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const updatedColumns = entity.columns.filter((_, i) => i !== index);
+    this.configBuilder.updateEntity(entity.id, { columns: updatedColumns });
+  }
+
+  /** Toggle column foreign key flag */
+  toggleColumnForeignKey(index: number, event: Event): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    const checked = (event.target as HTMLInputElement).checked;
+    const updatedColumns = [...entity.columns];
+
+    if (checked) {
+      updatedColumns[index] = {
+        ...updatedColumns[index],
+        foreignKey: { entity: '', field: '' },
+      };
+    } else {
+      const { foreignKey, ...rest } = updatedColumns[index];
+      updatedColumns[index] = rest as IColumnInfo;
+    }
+
+    this.configBuilder.updateEntity(entity.id, { columns: updatedColumns });
+  }
+
+  /** Update foreign key reference */
+  updateForeignKey(index: number, field: 'entity' | 'field', value: string): void {
+    const entity = this.selectedEntity();
+    if (!entity || !entity.columns[index].foreignKey) return;
+
+    const updatedColumns = [...entity.columns];
+    updatedColumns[index] = {
+      ...updatedColumns[index],
+      foreignKey: {
+        ...updatedColumns[index].foreignKey!,
+        [field]: value,
+      },
+    };
+
+    this.configBuilder.updateEntity(entity.id, { columns: updatedColumns });
+  }
+
+  /** Check if entity has any foreign keys defined */
+  hasForeignKeys(): boolean {
+    const entity = this.selectedEntity();
+    if (!entity) return false;
+    return entity.columns.some(
+      (col) => col.foreignKey && col.foreignKey.entity && col.foreignKey.field,
+    );
+  }
+
+  /** Auto-generate relationships from foreign key definitions */
+  autoGenerateRelationships(): void {
+    const entity = this.selectedEntity();
+    if (!entity) return;
+
+    let relationshipsAdded = 0;
+    const updatedRelationships = { ...entity.relationships };
+
+    // Find all foreign key columns
+    for (const column of entity.columns) {
+      if (!column.foreignKey || !column.foreignKey.entity || !column.foreignKey.field) {
+        continue;
+      }
+
+      // Generate relationship name based on the target entity
+      const targetEntity = column.foreignKey.entity;
+      let relationshipName = targetEntity.charAt(0).toLowerCase() + targetEntity.slice(1);
+
+      // Ensure unique relationship name
+      let counter = 1;
+      let uniqueName = relationshipName;
+      while (updatedRelationships[uniqueName]) {
+        uniqueName = `${relationshipName}${counter}`;
+        counter++;
+      }
+
+      // Create the relationship
+      const relationship: IRelationship = {
+        cardinality: 'one',
+        'target.entity': targetEntity,
+        'source.fields': [column.name],
+        'target.fields': [column.foreignKey.field],
+      };
+
+      updatedRelationships[uniqueName] = relationship;
+      relationshipsAdded++;
+    }
+
+    if (relationshipsAdded > 0) {
+      this.configBuilder.updateEntity(entity.id, { relationships: updatedRelationships });
+      this.notifications.success(
+        `Generated ${relationshipsAdded} relationship(s) from foreign keys`,
+      );
+    } else {
+      this.notifications.info('No valid foreign keys found to generate relationships');
+    }
   }
 }

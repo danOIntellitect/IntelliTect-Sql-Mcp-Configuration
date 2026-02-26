@@ -287,6 +287,10 @@ export interface IColumnInfo {
   maxLength?: number;
   defaultValue?: string;
   description?: string;
+  foreignKey?: {
+    entity: string;
+    field: string;
+  };
 }
 
 /**

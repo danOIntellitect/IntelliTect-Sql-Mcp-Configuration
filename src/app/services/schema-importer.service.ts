@@ -8,6 +8,7 @@ import {
   IEntitySource,
   IGeneratedEntity,
   IPermission,
+  IRelationship,
   ITableInfo,
 } from '../models';
 import { ConfigBuilderService } from './config-builder.service';
@@ -79,6 +80,7 @@ export class SchemaImporterService {
   private parseColumnsFromSql(columnsBlock: string, tableName: string): IColumnInfo[] {
     const columns: IColumnInfo[] = [];
     const primaryKeys: string[] = [];
+    const foreignKeys = new Map<string, { entity: string; field: string }>();
 
     // First, find PRIMARY KEY constraints
     const pkRegex = /PRIMARY\s+KEY\s*\(([^)]+)\)/gi;
@@ -86,6 +88,25 @@ export class SchemaImporterService {
     while ((pkMatch = pkRegex.exec(columnsBlock)) !== null) {
       const pkCols = pkMatch[1].split(',').map((c) => c.trim().replace(/[\[\]]/g, ''));
       primaryKeys.push(...pkCols);
+    }
+
+    // Find FOREIGN KEY constraints
+    // Pattern: FOREIGN KEY (ColumnName) REFERENCES TableName(ReferencedColumn)
+    const fkRegex =
+      /FOREIGN\s+KEY\s*\(([^)]+)\)\s*REFERENCES\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?\s*\(([^)]+)\)/gi;
+    let fkMatch: RegExpExecArray | null;
+    while ((fkMatch = fkRegex.exec(columnsBlock)) !== null) {
+      const sourceColumn = fkMatch[1].trim().replace(/[\[\]]/g, '');
+      const referencedTable = fkMatch[3];
+      const referencedColumn = fkMatch[4].trim().replace(/[\[\]]/g, '');
+
+      // Generate entity name from table name (simple singularization)
+      const entityName = this.tableNameToEntityName(referencedTable);
+
+      foreignKeys.set(sourceColumn, {
+        entity: entityName,
+        field: referencedColumn,
+      });
     }
 
     // Parse individual columns
@@ -100,8 +121,9 @@ export class SchemaImporterService {
       }
 
       // Match column definition: [ColumnName] DataType [NULL|NOT NULL] [PRIMARY KEY] [IDENTITY]
+      // Also check for inline FOREIGN KEY: REFERENCES TableName(Column)
       const colRegex =
-        /^\[?(\w+)\]?\s+(\w+(?:\s*\([^)]+\))?)\s*(NULL|NOT\s+NULL)?\s*(PRIMARY\s+KEY)?\s*(IDENTITY)?/i;
+        /^\[?(\w+)\]?\s+(\w+(?:\s*\([^)]+\))?)\s*(NULL|NOT\s+NULL)?\s*(PRIMARY\s+KEY)?\s*(IDENTITY)?(?:\s+REFERENCES\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?\s*\(([^)]+)\))?/i;
       const colMatch = colRegex.exec(trimmed);
 
       if (colMatch) {
@@ -110,16 +132,54 @@ export class SchemaImporterService {
         const nullability = colMatch[3];
         const isPkInline = !!colMatch[4];
 
+        // Check for inline FOREIGN KEY reference
+        const inlineRefTable = colMatch[7];
+        const inlineRefColumn = colMatch[8];
+
+        let foreignKey: { entity: string; field: string } | undefined = undefined;
+
+        if (inlineRefTable && inlineRefColumn) {
+          // Inline foreign key reference
+          const entityName = this.tableNameToEntityName(inlineRefTable);
+          foreignKey = {
+            entity: entityName,
+            field: inlineRefColumn.trim().replace(/[\[\]]/g, ''),
+          };
+        } else if (foreignKeys.has(colName)) {
+          // Foreign key defined in constraint
+          foreignKey = foreignKeys.get(colName);
+        }
+
         columns.push({
           name: colName,
           type: this.normalizeDataType(colType),
           nullable: nullability ? !/NOT\s+NULL/i.test(nullability) : true,
           isPrimaryKey: isPkInline || primaryKeys.includes(colName),
+          foreignKey,
         });
       }
     }
 
     return columns;
+  }
+
+  /**
+   * Convert table name to entity name (simple singularization)
+   */
+  private tableNameToEntityName(tableName: string): string {
+    let name = tableName;
+
+    // Remove common suffixes and convert to singular
+    if (name.endsWith('ies')) {
+      name = name.slice(0, -3) + 'y';
+    } else if (name.endsWith('es') && !name.endsWith('ses')) {
+      name = name.slice(0, -2);
+    } else if (name.endsWith('s') && !name.endsWith('ss')) {
+      name = name.slice(0, -1);
+    }
+
+    // Ensure PascalCase
+    return name.charAt(0).toUpperCase() + name.slice(1);
   }
 
   /**
@@ -289,7 +349,53 @@ export class SchemaImporterService {
    * Generate entities from imported schema with full automation
    */
   generateEntities(schema: IDatabaseSchema): IGeneratedEntity[] {
-    return schema.tables.map((table) => this.generateEntity(table));
+    const entities = schema.tables.map((table) => this.generateEntity(table));
+
+    // Auto-generate relationships from foreign keys
+    this.generateRelationshipsFromForeignKeys(entities);
+
+    return entities;
+  }
+
+  /**
+   * Auto-generate relationships from foreign key definitions across all entities
+   */
+  private generateRelationshipsFromForeignKeys(entities: IGeneratedEntity[]): void {
+    for (const entity of entities) {
+      const relationships: Record<string, IRelationship> = {};
+
+      // Find all foreign key columns
+      for (const column of entity.columns) {
+        if (!column.foreignKey || !column.foreignKey.entity || !column.foreignKey.field) {
+          continue;
+        }
+
+        // Generate relationship name based on the target entity
+        const targetEntity = column.foreignKey.entity;
+        let relationshipName = targetEntity.charAt(0).toLowerCase() + targetEntity.slice(1);
+
+        // Ensure unique relationship name
+        let counter = 1;
+        let uniqueName = relationshipName;
+        while (relationships[uniqueName]) {
+          uniqueName = `${relationshipName}${counter}`;
+          counter++;
+        }
+
+        // Create the relationship
+        const relationship: IRelationship = {
+          cardinality: 'one',
+          'target.entity': targetEntity,
+          'source.fields': [column.name],
+          'target.fields': [column.foreignKey.field],
+        };
+
+        relationships[uniqueName] = relationship;
+      }
+
+      // Assign generated relationships to entity
+      entity.relationships = relationships;
+    }
   }
 
   /**

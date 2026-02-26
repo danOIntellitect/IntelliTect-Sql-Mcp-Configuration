@@ -249,6 +249,15 @@ export interface IRelationship {
 }
 
 /**
+ * Field configuration for entity
+ */
+export interface IFieldConfig {
+  name: string;
+  description?: string;
+  'primary-key'?: boolean;
+}
+
+/**
  * Entity configuration
  */
 export interface IEntityConfig {
@@ -260,6 +269,7 @@ export interface IEntityConfig {
   mcp?: IEntityMcpConfig | boolean;
   mappings?: Record<string, string>;
   relationships?: Record<string, IRelationship>;
+  fields?: IFieldConfig[];
 }
 
 /**

@@ -227,6 +227,36 @@ export class ConfigBuilderService {
       config.mcp = entity.mcp;
     }
 
+    // Add fields if columns have descriptions or are primary keys
+    if (entity.columns && entity.columns.length > 0) {
+      const fields = entity.columns
+        .map((col) => {
+          const field: { name: string; description?: string; 'primary-key'?: boolean } = {
+            name: col.name,
+          };
+
+          if (col.description && col.description.trim()) {
+            field.description = col.description.trim();
+          }
+
+          if (col.isPrimaryKey) {
+            field['primary-key'] = true;
+          }
+
+          // Only include fields that have a description or are primary keys
+          return col.description?.trim() || col.isPrimaryKey ? field : null;
+        })
+        .filter((field) => field !== null) as Array<{
+        name: string;
+        description?: string;
+        'primary-key'?: boolean;
+      }>;
+
+      if (fields.length > 0) {
+        config.fields = fields;
+      }
+    }
+
     return config;
   }
 

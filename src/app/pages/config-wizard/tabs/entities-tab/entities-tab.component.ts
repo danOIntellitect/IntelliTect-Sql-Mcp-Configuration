@@ -801,7 +801,7 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                       </button>
                     }
                     <a
-                      href="https://learn.microsoft.com/en-us/azure/data-api-builder/configuration/fields"
+                      href="https://learn.microsoft.com/en-us/azure/data-api-builder/mcp/how-to-add-descriptions"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="ms-2 text-decoration-none"

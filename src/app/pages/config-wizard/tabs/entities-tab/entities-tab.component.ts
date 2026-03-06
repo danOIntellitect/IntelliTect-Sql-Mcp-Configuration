@@ -773,6 +773,7 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                   <h6 class="border-bottom pb-2 mb-3">
                     <i class="bi bi-list-columns me-2"></i>
                     Fields
+                    <span class="text-danger">*</span>
                     <button
                       type="button"
                       class="btn btn-sm btn-outline-primary ms-2"
@@ -809,6 +810,10 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                     >
                       <i class="bi bi-question-circle"></i>
                     </a>
+                    <i
+                      class="bi bi-info-circle ms-2 text-muted"
+                      title="At least one field is required. Field descriptions help the AI understand your data schema and provide better MCP tool suggestions and query generation."
+                    ></i>
                   </h6>
                   <div class="mb-4">
                     @if (entity.columns.length > 0 && showColumns()) {
@@ -925,11 +930,11 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                         </table>
                       </div>
                     } @else if (entity.columns.length === 0) {
-                      <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        No fields defined. Click "Add Field" to manually add field configurations.
-                        Fields are used to provide descriptions and metadata in the MCP tools and
-                        API documentation.
+                      <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>At least one field is required.</strong> Field definitions help the
+                        AI configure the MCP and generate accurate database queries. Click "Add
+                        Field" to define fields with descriptions and metadata.
                       </div>
                     }
                   </div>

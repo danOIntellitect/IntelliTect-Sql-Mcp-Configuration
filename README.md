@@ -2,6 +2,8 @@
 
 An Angular application for creating and managing [Azure Data API Builder (DAB)](https://learn.microsoft.com/en-us/azure/data-api-builder/) configuration files. Azure Data API Builder generates REST and GraphQL APIs from your database without writing backend code.
 
+Example: https://white-coast-0bb2b5d1e.4.azurestaticapps.net/
+
 ## Features
 
 - Configure database connections (SQL Server, PostgreSQL, MySQL, Cosmos DB)

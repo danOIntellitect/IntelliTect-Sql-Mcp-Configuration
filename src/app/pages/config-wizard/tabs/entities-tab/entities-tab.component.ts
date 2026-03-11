@@ -833,7 +833,7 @@ import { SchemaImporterService } from '../../../../services/schema-importer.serv
                             </tr>
                           </thead>
                           <tbody>
-                            @for (col of entity.columns; track col.name; let idx = $index) {
+                            @for (col of entity.columns; track idx; let idx = $index) {
                               <tr>
                                 <td>
                                   <input
